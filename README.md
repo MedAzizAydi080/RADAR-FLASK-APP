@@ -33,11 +33,12 @@ A lightweight Flask web application that fetches raw METAR reports from the Avia
  python app.py
 ```
 
-Visit http://127.0.0.1:5000/ in your browser, enter a four-letter ICAO code (e.g. `KJFK` or `LFPG`), and submit to see the raw METAR and translated summary. The bundled development server runs with `debug=True`; disable this flag or deploy behind a production-ready WSGI server when releasing publicly.
+Visit http://127.0.0.1:5000/ in your browser, enter a four-letter ICAO code (e.g. `KJFK` or `LFPG`), and submit to be redirected to a detailed report page showing both the raw METAR and the translated summary. The bundled development server runs with `debug=True`; disable this flag or deploy behind a production-ready WSGI server when releasing publicly.
 
 ## Project Structure
 - `app.py` – Flask application, METAR parser, and helpers
-- `templates/index.html` – Single-page interface for user input and results
+- `templates/index.html` – ICAO search form
+- `templates/report.html` – Raw and translated METAR output
 - `requirements.txt` – Python dependencies
 
 ## Contributing

@@ -4,7 +4,7 @@ import re
 from typing import List, Optional
 
 import requests
-from flask import Flask, render_template, request
+from flask import Flask, redirect, render_template, request, url_for
 
 app = Flask(__name__)
 
@@ -308,25 +308,39 @@ def _deduplicate_preserve_order(items: List[str]) -> List[str]:
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    """Render the METAR form and show raw and translated results when submitted."""
+    """Render the search form and redirect to the report page on valid submission."""
 
-    raw_metar = ""
-    translated = ""
     error = ""
+    icao_code = ""
 
     if request.method == 'POST':
         icao_code = request.form.get('icao', '').strip().upper()
-
         if not validate_icao(icao_code):
             error = "Please enter a valid 4-letter ICAO code."
         else:
-            try:
-                raw_metar = fetch_metar(icao_code)
-                translated = parse_metar(raw_metar)
-            except (RuntimeError, ValueError) as exc:
-                error = str(exc)
+            return redirect(url_for('report', icao=icao_code))
+    else:
+        error = request.args.get('error', "")
+        icao_code = request.args.get('icao', '').strip().upper()
 
-    return render_template('index.html', raw_metar=raw_metar, translated=translated, error=error)
+    return render_template('index.html', error=error, icao_code=icao_code)
+
+
+@app.route('/report/<icao>')
+def report(icao: str):
+    """Display the raw and translated METAR report on a separate page."""
+
+    icao_code = (icao or "").strip().upper()
+    if not validate_icao(icao_code):
+        return redirect(url_for('index', error="Please enter a valid 4-letter ICAO code.", icao=icao_code))
+
+    try:
+        raw_metar = fetch_metar(icao_code)
+        translated = parse_metar(raw_metar)
+    except (RuntimeError, ValueError) as exc:
+        return redirect(url_for('index', error=str(exc), icao=icao_code))
+
+    return render_template('report.html', icao_code=icao_code, raw_metar=raw_metar, translated=translated)
 
 
 if __name__ == '__main__':
