@@ -35,6 +35,17 @@ A lightweight Flask web application that fetches raw METAR reports from the Avia
 
 Visit http://127.0.0.1:5000/ in your browser, enter a four-letter ICAO code (e.g. `KJFK` or `LFPG`), and submit to be redirected to a detailed report page showing both the raw METAR and the translated summary. The bundled development server runs with `debug=True`; disable this flag or deploy behind a production-ready WSGI server when releasing publicly.
 
+## Testing
+The project ships with a small pytest suite that exercises the METAR parsing helpers:
+- Confirms several representative METAR strings translate into the expected human-readable phrases (cloud cover, wind, visibility, temperature, dew point, pressure, and significant weather).
+- Verifies an empty METAR response yields the fallback message that the UI displays for missing data.
+- Checks that ICAO codes must be four alphabetic characters before a request is sent.
+
+Run the suite with:
+```bash
+pytest
+```
+
 ## Project Structure
 - `app.py` – Flask application, METAR parser, and helpers
 - `templates/index.html` – ICAO search form
