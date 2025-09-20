@@ -1,3 +1,5 @@
+"""Flask app that fetches and translates METAR weather reports."""
+
 import re
 from typing import List, Optional
 
@@ -60,10 +62,14 @@ CARDINAL_DIRECTIONS = [
 
 
 def validate_icao(code: str) -> bool:
+    """Return ``True`` when ``code`` is a valid four-letter ICAO identifier."""
+
     return bool(ICAO_PATTERN.match(code))
 
 
 def fetch_metar(icao_code: str) -> str:
+    """Fetch the raw METAR string for ``icao_code`` from the Aviation Weather API."""
+
     params = {"ids": icao_code, "format": "raw"}
     try:
         response = requests.get(API_URL, params=params, timeout=10)
@@ -84,6 +90,8 @@ def fetch_metar(icao_code: str) -> str:
 
 
 def parse_metar(raw_metar: str) -> str:
+    """Translate a raw METAR string into a human-readable summary."""
+
     if not raw_metar:
         return "Unable to parse METAR report."
 
@@ -122,6 +130,8 @@ def parse_metar(raw_metar: str) -> str:
 
 
 def _extract_sky_conditions(tokens: List[str]) -> List[str]:
+    """Return phrases describing cloud coverage and height from tokenized METAR."""
+
     conditions: List[str] = []
     for token in tokens:
         if token in {"NIL", "AUTO", "COR"}:
@@ -142,6 +152,8 @@ def _extract_sky_conditions(tokens: List[str]) -> List[str]:
 
 
 def _extract_temperature(tokens: List[str]) -> Optional[str]:
+    """Return a phrase describing the reported temperature, if present."""
+
     for token in tokens:
         match = TEMP_PATTERN.match(token)
         if match:
@@ -151,6 +163,8 @@ def _extract_temperature(tokens: List[str]) -> Optional[str]:
 
 
 def _extract_dew_point(tokens: List[str]) -> Optional[str]:
+    """Return a phrase describing the reported dew point, if present."""
+
     for token in tokens:
         match = TEMP_PATTERN.match(token)
         if match:
@@ -160,10 +174,14 @@ def _extract_dew_point(tokens: List[str]) -> Optional[str]:
 
 
 def _decode_temperature(value: str) -> int:
+    """Convert METAR temperature strings (e.g. ``M05``) into integers."""
+
     return -int(value[1:]) if value.startswith("M") else int(value)
 
 
 def _extract_wind(tokens: List[str]) -> Optional[str]:
+    """Return a phrase describing wind direction, speed, and gusts."""
+
     for token in tokens:
         match = WIND_PATTERN.match(token)
         if match:
@@ -186,11 +204,15 @@ def _extract_wind(tokens: List[str]) -> Optional[str]:
 
 
 def _degrees_to_cardinal(degrees: int) -> str:
+    """Convert degrees to the nearest cardinal/intercardinal direction name."""
+
     index = int((degrees % 360) / 22.5 + 0.5) % len(CARDINAL_DIRECTIONS)
     return CARDINAL_DIRECTIONS[index]
 
 
 def _extract_visibility(tokens: List[str]) -> Optional[str]:
+    """Return a phrase describing horizontal visibility in statute miles."""
+
     for token in tokens:
         if token.endswith("SM"):
             miles = _convert_visibility_to_float(token)
@@ -201,6 +223,8 @@ def _extract_visibility(tokens: List[str]) -> Optional[str]:
 
 
 def _convert_visibility_to_float(token: str) -> Optional[float]:
+    """Parse METAR visibility tokens like ``10SM`` or ``1 1/2SM`` into floats."""
+
     try:
         value = token[:-2]  # remove 'SM'
         if value.startswith("P"):
@@ -216,11 +240,15 @@ def _convert_visibility_to_float(token: str) -> Optional[float]:
 
 
 def _fraction_to_float(value: str) -> float:
+    """Convert a simple fraction string (e.g. ``1/2``) to a float."""
+
     numerator, denominator = value.split("/")
     return int(numerator) / int(denominator)
 
 
 def _extract_pressure(tokens: List[str]) -> Optional[str]:
+    """Return barometric pressure in hectopascals when reported."""
+
     for token in tokens:
         match = ALTIMETER_PATTERN.match(token)
         if not match:
@@ -237,6 +265,8 @@ def _extract_pressure(tokens: List[str]) -> Optional[str]:
 
 
 def _extract_weather(tokens: List[str]) -> Optional[str]:
+    """Return descriptive phrases for significant weather phenomena."""
+
     phenomena: List[str] = []
     for token in tokens:
         for code, description in WEATHER_CODES.items():
@@ -252,6 +282,8 @@ def _extract_weather(tokens: List[str]) -> Optional[str]:
 
 
 def _decode_intensity(modifier: str) -> str:
+    """Translate intensity modifiers (e.g. ``-``) into human-readable prefixes."""
+
     if modifier == "-":
         return "Light "
     if modifier == "+":
@@ -262,6 +294,8 @@ def _decode_intensity(modifier: str) -> str:
 
 
 def _deduplicate_preserve_order(items: List[str]) -> List[str]:
+    """Return a list without duplicates while preserving the original order."""
+
     seen = set()
     result = []
     for item in items:
@@ -274,6 +308,8 @@ def _deduplicate_preserve_order(items: List[str]) -> List[str]:
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    """Render the METAR form and show raw and translated results when submitted."""
+
     raw_metar = ""
     translated = ""
     error = ""
